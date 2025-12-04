@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiMacApp.MainPage">
+
+    <VerticalStackLayout
+        Spacing="25"
+        Padding="30,0"
+        VerticalOptions="Start">
+
+        <!-- Buttons at the top, side by side in a row -->
+        <HorizontalStackLayout HorizontalOptions="Center" Spacing="20">
+            <Button
+                x:Name="LoadBtn"
+                Text="Load"
+                SemanticProperties.Hint="Opens a folder picker"
+                Clicked="OnLoadClicked"
+                WidthRequest="200"
+                HeightRequest="50" />
+
+            <Button
+                x:Name="SaveBtn"
+                Text="Save"
+                SemanticProperties.Hint="Opens a file save dialog"
+                Clicked="OnSaveClicked"
+                WidthRequest="200"
+                HeightRequest="50" />
+        </HorizontalStackLayout>
+
+        <Label
+            x:Name="StatusLabel"
+            Text="Ready"
+            FontSize="18"
+            HorizontalOptions="Center"
+            Margin="0,20,0,20" />
+
+        <Label
+            x:Name="ResultLabel"
+            Text=""
+            FontSize="14"
+            HorizontalOptions="Center"
+            Margin="0,20,0,0"
+            LineBreakMode="WordWrap"
+            MaxLines="5" />
+
+    </VerticalStackLayout>
+
+</ContentPage>
