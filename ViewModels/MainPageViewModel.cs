@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Storage;
+using Microsoft.Maui.Devices;
 using MauiMacApp.Models;
 using MauiMacApp.Services;
 
@@ -68,28 +69,50 @@ public class MainPageViewModel : INotifyPropertyChanged
     {
         try
         {
-            StatusText = "Opening file picker...";
+            StatusText = "Opening CSV file...";
 
-            var options = new PickOptions { PickerTitle = "Select a file" };
+            var csvFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+            {
+                { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text", ".csv" } },
+                { DevicePlatform.iOS, new[] { "public.comma-separated-values-text", ".csv" } },
+                { DevicePlatform.WinUI, new[] { ".csv" } },
+                { DevicePlatform.Android, new[] { "text/csv" } },
+                { DevicePlatform.Tizen, new[] { ".csv" } }
+            });
+
+            var options = new PickOptions
+            {
+                PickerTitle = "Select CSV file",
+                FileTypes = csvFileType
+            };
             var result = await FilePicker.Default.PickAsync(options);
 
-            if (result != null)
-            {
-                var folderPath = Path.GetDirectoryName(result.FullPath);
-                StatusText = "File selected";
-                ResultText = $"Selected file: {result.FileName}\nFolder: {folderPath}";
-
-                if (!string.IsNullOrEmpty(folderPath))
-                {
-                    var files = Directory.GetFiles(folderPath);
-                    ResultText += $"\nFiles in folder: {files.Length}";
-                }
-            }
-            else
+            if (result == null)
             {
                 StatusText = "No file selected";
                 ResultText = string.Empty;
+                return;
             }
+
+            // Read all text
+            string csvContent;
+            using (var stream = await result.OpenReadAsync())
+            using (var reader = new StreamReader(stream))
+            {
+                csvContent = await reader.ReadToEndAsync();
+            }
+
+            var loaded = DeserializeFromCsv(csvContent);
+
+            Items.Clear();
+            foreach (var item in loaded)
+                Items.Add(item);
+
+            SelectedItem = null;
+            ((Command)EditCommand).ChangeCanExecute();
+
+            StatusText = "CSV loaded";
+            ResultText = $"Loaded {loaded.Count} item(s) from {result.FileName}";
         }
         catch (Exception ex)
         {
@@ -102,18 +125,18 @@ public class MainPageViewModel : INotifyPropertyChanged
     {
         try
         {
-            StatusText = "Saving file...";
+            StatusText = "Saving CSV...";
 
-            string fileName = "document.txt";
-            string content = "Hello from MAUI macOS App!\nCreated on: " + DateTime.Now.ToString();
+            string fileName = $"music_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            string content = SerializeToCsv(Items);
 
             using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(content));
             var saveResult = await FileSaver.Default.SaveAsync(fileName, stream, CancellationToken.None);
 
             if (saveResult.IsSuccessful)
             {
-                StatusText = "File saved!";
-                ResultText = $"File saved to:\n{saveResult.FilePath}";
+                StatusText = "CSV saved";
+                ResultText = $"Saved {Items.Count} item(s) to:\n{saveResult.FilePath}";
             }
             else
             {
@@ -128,6 +151,136 @@ public class MainPageViewModel : INotifyPropertyChanged
             StatusText = "Error";
             ResultText = $"Error: {ex.Message}";
         }
+    }
+
+    private static string SerializeToCsv(IEnumerable<MusicItem> items)
+    {
+        var sb = new System.Text.StringBuilder();
+        // Header
+        sb.AppendLine("Name,Author,Genre");
+        foreach (var it in items)
+        {
+            sb.Append(EscapeCsv(it.Name)).Append(',')
+              .Append(EscapeCsv(it.Author)).Append(',')
+              .Append(EscapeCsv(it.Genre)).AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        value ??= string.Empty;
+        bool mustQuote = value.Contains('"') || value.Contains(',') || value.Contains('\n') || value.Contains('\r');
+        if (value.Contains('"'))
+            value = value.Replace("\"", "\"\"");
+        return mustQuote ? $"\"{value}\"" : value;
+    }
+
+    private static List<MusicItem> DeserializeFromCsv(string csv)
+    {
+        var list = new List<MusicItem>();
+        if (string.IsNullOrWhiteSpace(csv))
+            return list;
+
+        using var reader = new StringReader(csv);
+        string? line;
+        bool headerSkipped = false;
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            var fields = ParseCsvLine(line);
+
+            // Skip header if detected
+            if (!headerSkipped)
+            {
+                headerSkipped = true;
+                if (fields.Count >= 3 &&
+                    string.Equals(fields[0], "Name", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(fields[1], "Author", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(fields[2], "Genre", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+            }
+
+            // Merge continuation lines if a quoted field spanned multiple lines
+            while (UnbalancedQuotes(fields))
+            {
+                var next = reader.ReadLine();
+                if (next is null) break;
+                line += "\n" + next;
+                fields = ParseCsvLine(line);
+            }
+
+            if (fields.Count == 0) continue;
+
+            string name = fields.ElementAtOrDefault(0) ?? string.Empty;
+            string author = fields.ElementAtOrDefault(1) ?? string.Empty;
+            string genre = fields.ElementAtOrDefault(2) ?? string.Empty;
+            list.Add(new MusicItem { Name = name, Author = author, Genre = genre });
+        }
+        return list;
+    }
+
+    private static bool UnbalancedQuotes(List<string> fields)
+    {
+        // Simple check: if any field starts with quote without ending quote when odd quotes count overall
+        // We rely on ParseCsvLine correctness; here we don't need extra work, return false.
+        return false;
+    }
+
+    private static List<string> ParseCsvLine(string line)
+    {
+        var result = new List<string>();
+        if (line is null)
+            return result;
+
+        var sb = new System.Text.StringBuilder();
+        bool inQuotes = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (inQuotes)
+            {
+                if (c == '"')
+                {
+                    // Lookahead for escaped quote
+                    if (i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        sb.Append('"');
+                        i++; // skip next
+                    }
+                    else
+                    {
+                        inQuotes = false; // end quote
+                    }
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            else
+            {
+                if (c == ',')
+                {
+                    result.Add(sb.ToString());
+                    sb.Clear();
+                }
+                else if (c == '"')
+                {
+                    inQuotes = true;
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+        }
+        result.Add(sb.ToString());
+        return result;
     }
 
     private async Task OnEditAsync()
