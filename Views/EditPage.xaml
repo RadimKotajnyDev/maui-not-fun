@@ -6,11 +6,11 @@
 
     <VerticalStackLayout Spacing="10" Padding="20">
         
-        <Entry Placeholder="Název" Text="{Binding Name}" />
+        <Entry Placeholder="Name" Text="{Binding Name}" />
         
-        <Entry Placeholder="Autor" Text="{Binding Author}" />
+        <Entry Placeholder="Author" Text="{Binding Author}" />
         
-        <Entry Placeholder="Žánr" Text="{Binding Genre}" />
+        <Entry Placeholder="Genre" Text="{Binding Genre}" />
 
         <HorizontalStackLayout Spacing="10" Margin="0,20,0,0">
             
