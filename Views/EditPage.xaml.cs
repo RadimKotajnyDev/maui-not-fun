@@ -1,39 +1,38 @@
 using MauiMacApp.Models;
+using MauiMacApp.ViewModels; 
 
 namespace MauiMacApp.Views;
 
 public partial class EditPage : ContentPage
 {
-    private readonly TaskCompletionSource<MusicItem?> _tcs = new();
-    public Task<MusicItem?> CompletionTask => _tcs.Task;
-    private readonly MusicItem _original;
-    private bool _completed;
+    private readonly EditPageViewModel _viewModel;
+
+    public Task<MusicItem?> CompletionTask => _viewModel.CompletionTask;
 
     public EditPage(MusicItem item)
     {
         InitializeComponent();
-        _original = item;
+        
+        _viewModel = new EditPageViewModel(item);
+        this.BindingContext = _viewModel;
 
-        NameEntry.Text = item.Name;
-        AuthorEntry.Text = item.Author;
-        GenreEntry.Text = item.Genre;
+        _viewModel.CompletionTask.ContinueWith(t =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CloseThisWindow();
+            });
+        });
 
-        this.Disappearing += (s, e) => Complete(null);
+        this.Disappearing += (s, e) => _viewModel.Complete(null);
 
         this.Loaded += (s, e) =>
         {
             if (this.Window != null)
             {
-                this.Window.Destroying += (ws, we) => Complete(null);
+                this.Window.Destroying += (ws, we) => _viewModel.Complete(null);
             }
         };
-    }
-
-    private void Complete(MusicItem? result)
-    {
-        if (_completed) return;
-        _completed = true;
-        _tcs.TrySetResult(result);
     }
 
     private void CloseThisWindow()
@@ -42,24 +41,5 @@ public partial class EditPage : ContentPage
         {
             Application.Current?.CloseWindow(this.Window);
         }
-    }
-
-    private void OnCancelClicked(object? sender, System.EventArgs e)
-    {
-        Complete(null);
-        CloseThisWindow();
-    }
-
-    private void OnSaveClicked(object? sender, System.EventArgs e)
-    {
-        var edited = new MusicItem
-        {
-            Name = NameEntry.Text?.Trim() ?? string.Empty,
-            Author = AuthorEntry.Text?.Trim() ?? string.Empty,
-            Genre = GenreEntry.Text?.Trim() ?? string.Empty
-        };
-
-        Complete(edited);
-        CloseThisWindow();
     }
 }
