@@ -94,7 +94,6 @@ public class MainPageViewModel : INotifyPropertyChanged
                 return;
             }
 
-            // Read all text
             string csvContent;
             using (var stream = await result.OpenReadAsync())
             using (var reader = new StreamReader(stream))
@@ -156,7 +155,6 @@ public class MainPageViewModel : INotifyPropertyChanged
     private static string SerializeToCsv(IEnumerable<MusicItem> items)
     {
         var sb = new System.Text.StringBuilder();
-        // Header
         sb.AppendLine("Name,Author,Genre");
         foreach (var it in items)
         {
@@ -192,7 +190,6 @@ public class MainPageViewModel : INotifyPropertyChanged
 
             var fields = ParseCsvLine(line);
 
-            // Skip header if detected
             if (!headerSkipped)
             {
                 headerSkipped = true;
@@ -205,7 +202,6 @@ public class MainPageViewModel : INotifyPropertyChanged
                 }
             }
 
-            // Merge continuation lines if a quoted field spanned multiple lines
             while (UnbalancedQuotes(fields))
             {
                 var next = reader.ReadLine();
@@ -226,8 +222,6 @@ public class MainPageViewModel : INotifyPropertyChanged
 
     private static bool UnbalancedQuotes(List<string> fields)
     {
-        // Simple check: if any field starts with quote without ending quote when odd quotes count overall
-        // We rely on ParseCsvLine correctness; here we don't need extra work, return false.
         return false;
     }
 
@@ -246,15 +240,14 @@ public class MainPageViewModel : INotifyPropertyChanged
             {
                 if (c == '"')
                 {
-                    // Lookahead for escaped quote
                     if (i + 1 < line.Length && line[i + 1] == '"')
                     {
                         sb.Append('"');
-                        i++; // skip next
+                        i++;
                     }
                     else
                     {
-                        inQuotes = false; // end quote
+                        inQuotes = false; 
                     }
                 }
                 else

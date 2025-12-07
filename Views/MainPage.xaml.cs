@@ -13,14 +13,12 @@ namespace MauiMacApp.Views
         {
             InitializeComponent();
 
-            // For simplicity, instantiate VM and service directly.
             _viewModel = new MainPageViewModel(new EditDialogService());
             BindingContext = _viewModel;
 
             this.Loaded += (s, e) =>
             {
                 CenterMainWindowOnCreation();
-                // Provide window reference to VM for dialog centering
                 _viewModel.OwnerWindow = this.Window;
             };
         }
