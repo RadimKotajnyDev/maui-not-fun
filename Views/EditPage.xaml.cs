@@ -7,6 +7,7 @@ public partial class EditPage : ContentPage
     private readonly TaskCompletionSource<MusicItem?> _tcs = new();
     public Task<MusicItem?> CompletionTask => _tcs.Task;
     private readonly MusicItem _original;
+    private bool _completed;
 
     public EditPage(MusicItem item)
     {
@@ -16,8 +17,23 @@ public partial class EditPage : ContentPage
         NameEntry.Text = item.Name;
         AuthorEntry.Text = item.Author;
         GenreEntry.Text = item.Genre;
-        
-        this.Unloaded += (s, e) => _tcs.TrySetResult(null);
+
+        this.Disappearing += (s, e) => Complete(null);
+
+        this.Loaded += (s, e) =>
+        {
+            if (this.Window != null)
+            {
+                this.Window.Destroying += (ws, we) => Complete(null);
+            }
+        };
+    }
+
+    private void Complete(MusicItem? result)
+    {
+        if (_completed) return;
+        _completed = true;
+        _tcs.TrySetResult(result);
     }
 
     private void CloseThisWindow()
@@ -30,7 +46,7 @@ public partial class EditPage : ContentPage
 
     private void OnCancelClicked(object? sender, System.EventArgs e)
     {
-        _tcs.TrySetResult(null);
+        Complete(null);
         CloseThisWindow();
     }
 
@@ -43,7 +59,7 @@ public partial class EditPage : ContentPage
             Genre = GenreEntry.Text?.Trim() ?? string.Empty
         };
 
-        _tcs.TrySetResult(edited);
+        Complete(edited);
         CloseThisWindow();
     }
 }
