@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MauiMacApp.Views.EditPage"
+             Title="Edit Item">
+    <VerticalStackLayout Padding="20" Spacing="12">
+        <Label Text="Name" />
+        <Entry x:Name="NameEntry" />
+
+        <Label Text="Author" />
+        <Entry x:Name="AuthorEntry" />
+
+        <Label Text="Genre" />
+        <Entry x:Name="GenreEntry" />
+
+        <HorizontalStackLayout Spacing="12" Margin="0,10,0,0">
+            <Button Text="Cancel" Clicked="OnCancelClicked" />
+            <Button Text="Save" Clicked="OnSaveClicked" />
+        </HorizontalStackLayout>
+    </VerticalStackLayout>
+</ContentPage>
