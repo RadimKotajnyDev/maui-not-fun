@@ -14,7 +14,7 @@
                 x:Name="SaveBtn"
                 Text="Save"
                 SemanticProperties.Hint="Opens a file save dialog"
-                Clicked="OnSaveClicked"
+                Command="{Binding SaveCommand}"
                 WidthRequest="200"
                 HeightRequest="50" />
             
@@ -22,7 +22,7 @@
                 x:Name="LoadBtn"
                 Text="Load"
                 SemanticProperties.Hint="Opens a folder picker"
-                Clicked="OnLoadClicked"
+                Command="{Binding LoadCommand}"
                 WidthRequest="200"
                 HeightRequest="50" />
 
@@ -30,10 +30,10 @@
                 x:Name="EditBtn"
                 Text="Edit"
                 SemanticProperties.Hint="Opens an edit dialog"
-                Clicked="OnEditClicked"
+                Command="{Binding EditCommand}"
                 WidthRequest="200"
                 HeightRequest="50"
-                IsEnabled="False" />
+                IsEnabled="{Binding IsEditEnabled}" />
         </HorizontalStackLayout>
         
         <Border Stroke="#999" StrokeThickness="1" Padding="0" Margin="0,10,0,0">
@@ -48,9 +48,9 @@
                 <BoxView HeightRequest="1" BackgroundColor="#999" />
 
                 <CollectionView x:Name="MusicCollection"
-                                ItemsSource="{Binding MyItems}"
+                                ItemsSource="{Binding Items}"
                                 SelectionMode="Single"
-                                SelectionChanged="OnSelectionChanged">
+                                SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical" />
                     </CollectionView.ItemsLayout>
@@ -88,15 +88,13 @@
         </Border>
 
         <Label
-            x:Name="StatusLabel"
-            Text="Ready"
+            Text="{Binding StatusText}"
             FontSize="18"
             HorizontalOptions="Center"
             Margin="0,20,0,20" />
 
         <Label
-            x:Name="ResultLabel"
-            Text=""
+            Text="{Binding ResultText}"
             FontSize="14"
             HorizontalOptions="Center"
             Margin="0,20,0,0"
